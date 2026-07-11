@@ -19,7 +19,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 LiquidCrystal_I2C lcd(0x27, 16, 2); // alamat I2C umum: 0x27, kalau blank coba 0x3F
 
 // ---------- Threshold (ambang batas) ----------
-const int GAS_THRESHOLD  = 1500;  // nilai ADC MQ2, sesuaikan saat kalibrasi
+const int GAS_THRESHOLD  = 2800;  // baseline aman ~843, bahaya mendekati 4041
 const float TEMP_THRESHOLD = 32.0; // suhu kandang dalam Celsius
 
 // ---------- Variabel Global ----------
@@ -59,6 +59,17 @@ void loop() {
   }
 }
 
+// ---------- Noise Averaging untuk Sensor Gas (MQ2) ----------
+int readGasAveraged() {
+  const int numReadings = 10;
+  long total = 0;
+  for (int i = 0; i < numReadings; i++) {
+    total += analogRead(MQ2_PIN);
+    delay(5);
+  }
+  return total / numReadings;
+}
+
 void readAndProcessSensors() {
   // --- Baca DHT22 ---
   float temperature = dht.readTemperature();
@@ -68,7 +79,7 @@ void readAndProcessSensors() {
   int motionDetected = digitalRead(PIR_PIN);
 
   // --- Baca MQ2 ---
-  int gasValue = analogRead(MQ2_PIN);
+  int gasValue = readGasAveraged();
 
   // Validasi DHT22 (kadang gagal baca, harus dicek)
   if (isnan(temperature) || isnan(humidity)) {
